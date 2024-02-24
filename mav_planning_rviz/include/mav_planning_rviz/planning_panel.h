@@ -78,6 +78,7 @@ class PlanningPanel : public rviz_common::Panel {
   void terrainAlignmentStateChanged(int state);
   void EnableMaxAltitude();
   void DisableMaxAltitude();
+  void setPlannerModeServiceHold();
   void setPlannerModeServiceNavigate();
   void setPlannerModeServiceRollout();
   void setPlannerModeServiceAbort();

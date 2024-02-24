@@ -101,6 +101,7 @@ void PlanningPanel::createLayout() {
 QGroupBox* PlanningPanel::createPlannerModeGroup() {
   QGroupBox* groupBox = new QGroupBox(tr("Planner Actions"));
   QGridLayout* service_layout = new QGridLayout;
+  set_planner_state_buttons_.push_back(new QPushButton("HOLD"));
   set_planner_state_buttons_.push_back(new QPushButton("NAVIGATE"));
   set_planner_state_buttons_.push_back(new QPushButton("ROLLOUT"));
   set_planner_state_buttons_.push_back(new QPushButton("ABORT"));
@@ -108,14 +109,16 @@ QGroupBox* PlanningPanel::createPlannerModeGroup() {
 
   service_layout->addWidget(set_planner_state_buttons_[0], 0, 0, 1, 1);
   service_layout->addWidget(set_planner_state_buttons_[1], 0, 1, 1, 1);
-  service_layout->addWidget(set_planner_state_buttons_[3], 0, 2, 1, 1);
-  service_layout->addWidget(set_planner_state_buttons_[2], 0, 3, 1, 1);
+  service_layout->addWidget(set_planner_state_buttons_[2], 0, 2, 1, 1);
+  service_layout->addWidget(set_planner_state_buttons_[3], 0, 3, 1, 1);
+  service_layout->addWidget(set_planner_state_buttons_[4], 0, 4, 1, 1);
   groupBox->setLayout(service_layout);
 
-  connect(set_planner_state_buttons_[0], SIGNAL(released()), this, SLOT(setPlannerModeServiceNavigate()));
-  connect(set_planner_state_buttons_[1], SIGNAL(released()), this, SLOT(setPlannerModeServiceRollout()));
-  connect(set_planner_state_buttons_[2], SIGNAL(released()), this, SLOT(setPlannerModeServiceAbort()));
-  connect(set_planner_state_buttons_[3], SIGNAL(released()), this, SLOT(setPlannerModeServiceReturn()));
+  connect(set_planner_state_buttons_[0], SIGNAL(released()), this, SLOT(setPlannerModeServiceHold()));
+  connect(set_planner_state_buttons_[1], SIGNAL(released()), this, SLOT(setPlannerModeServiceNavigate()));
+  connect(set_planner_state_buttons_[2], SIGNAL(released()), this, SLOT(setPlannerModeServiceRollout()));
+  connect(set_planner_state_buttons_[3], SIGNAL(released()), this, SLOT(setPlannerModeServiceAbort()));
+  connect(set_planner_state_buttons_[4], SIGNAL(released()), this, SLOT(setPlannerModeServiceReturn()));
 
   return groupBox;
 }
@@ -691,8 +694,16 @@ void PlanningPanel::setPlanningBudgetService() {
   t.detach();
 }
 
+void PlanningPanel::setPlannerModeServiceHold() {
+  callSetPlannerStateService("/terrain_planner/set_planner_state", 1);
+}
+
 void PlanningPanel::setPlannerModeServiceNavigate() {
   callSetPlannerStateService("/terrain_planner/set_planner_state", 2);
+}
+
+void PlanningPanel::setPlannerModeServiceRollout() {
+  callSetPlannerStateService("/terrain_planner/set_planner_state", 3);
 }
 
 void PlanningPanel::setPlannerModeServiceAbort() {
@@ -701,10 +712,6 @@ void PlanningPanel::setPlannerModeServiceAbort() {
 
 void PlanningPanel::setPlannerModeServiceReturn() {
   callSetPlannerStateService("/terrain_planner/set_planner_state", 5);
-}
-
-void PlanningPanel::setPlannerModeServiceRollout() {
-  callSetPlannerStateService("/terrain_planner/set_planner_state", 3);
 }
 
 void PlanningPanel::callSetPlannerStateService(std::string service_name, const int mode) {
@@ -876,38 +883,43 @@ void PlanningPanel::odometryCallback(const nav_msgs::msg::Odometry& msg) {
 void PlanningPanel::plannerstateCallback(const planner_msgs::msg::NavigationStatus& msg) {
   switch (msg.state) {
     case PLANNER_STATE::HOLD: {
-      set_planner_state_buttons_[0]->setDisabled(false);  // NAVIGATE
-      set_planner_state_buttons_[1]->setDisabled(false);  // ROLLOUT
-      set_planner_state_buttons_[2]->setDisabled(true);   // ABORT
-      set_planner_state_buttons_[3]->setDisabled(false);  // RETURN
+      set_planner_state_buttons_[0]->setDisabled(false);  // HOLD
+      set_planner_state_buttons_[1]->setDisabled(false);  // NAVIGATE
+      set_planner_state_buttons_[2]->setDisabled(false);  // ROLLOUT
+      set_planner_state_buttons_[3]->setDisabled(true);   // ABORT
+      set_planner_state_buttons_[4]->setDisabled(false);  // RETURN
       break;
     }
     case PLANNER_STATE::NAVIGATE: {
-      set_planner_state_buttons_[0]->setDisabled(true);   // NAVIGATE
-      set_planner_state_buttons_[1]->setDisabled(true);   // ROLLOUT
-      set_planner_state_buttons_[2]->setDisabled(false);  // ABORT
-      set_planner_state_buttons_[3]->setDisabled(false);  // RETURN
+      set_planner_state_buttons_[0]->setDisabled(false);  // HOLD
+      set_planner_state_buttons_[1]->setDisabled(true);   // NAVIGATE
+      set_planner_state_buttons_[2]->setDisabled(true);   // ROLLOUT
+      set_planner_state_buttons_[3]->setDisabled(false);  // ABORT
+      set_planner_state_buttons_[4]->setDisabled(false);  // RETURN
       break;
     }
     case PLANNER_STATE::ROLLOUT: {
-      set_planner_state_buttons_[0]->setDisabled(true);   // NAVIGATE
-      set_planner_state_buttons_[1]->setDisabled(true);   // ROLLOUT
-      set_planner_state_buttons_[2]->setDisabled(false);  // ABORT
-      set_planner_state_buttons_[3]->setDisabled(true);   // RETURN
+      set_planner_state_buttons_[0]->setDisabled(false);  // HOLD
+      set_planner_state_buttons_[1]->setDisabled(true);   // NAVIGATE
+      set_planner_state_buttons_[2]->setDisabled(true);   // ROLLOUT
+      set_planner_state_buttons_[3]->setDisabled(false);  // ABORT
+      set_planner_state_buttons_[4]->setDisabled(true);   // RETURN
       break;
     }
     case PLANNER_STATE::ABORT: {
-      set_planner_state_buttons_[0]->setDisabled(true);  // NAVIGATE
-      set_planner_state_buttons_[1]->setDisabled(true);  // ROLLOUT
-      set_planner_state_buttons_[2]->setDisabled(true);  // ABORT
-      set_planner_state_buttons_[3]->setDisabled(true);  // RETURN
+      set_planner_state_buttons_[0]->setDisabled(false); // HOLD
+      set_planner_state_buttons_[1]->setDisabled(true);  // NAVIGATE
+      set_planner_state_buttons_[2]->setDisabled(true);  // ROLLOUT
+      set_planner_state_buttons_[3]->setDisabled(true);  // ABORT
+      set_planner_state_buttons_[4]->setDisabled(true);  // RETURN
       break;
     }
     case PLANNER_STATE::RETURN: {
-      set_planner_state_buttons_[0]->setDisabled(true);   // NAVIGATE
-      set_planner_state_buttons_[1]->setDisabled(true);   // ROLLOUT
-      set_planner_state_buttons_[2]->setDisabled(false);  // ABORT
-      set_planner_state_buttons_[3]->setDisabled(true);   // RETURN
+      set_planner_state_buttons_[0]->setDisabled(false);  // HOLD
+      set_planner_state_buttons_[1]->setDisabled(true);   // NAVIGATE
+      set_planner_state_buttons_[2]->setDisabled(true);   // ROLLOUT
+      set_planner_state_buttons_[3]->setDisabled(false);  // ABORT
+      set_planner_state_buttons_[4]->setDisabled(true);   // RETURN
       break;
     }
   }
