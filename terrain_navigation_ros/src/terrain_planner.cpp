@@ -760,13 +760,21 @@ void TerrainPlanner::publishPositionHistory(rclcpp::Publisher<nav_msgs::msg::Pat
 void TerrainPlanner::publishGlobalPositionSetpoints(
     rclcpp::Publisher<mavros_msgs::msg::GlobalPositionTarget>::SharedPtr pub, const double latitude,
     const double longitude, const double altitude, const Eigen::Vector3d &velocity, const double curvature) {
+  // bit mask for path following: ignore force_set, yaw, yaw_rate
+  // const uint16_t path_mask = 0b1111111000000000;
+  // const uint16_t path_mask =
+  //     mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW |
+  //     mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW_RATE;
+
   using namespace mavros_msgs;
   // Publishes position setpoints sequentially as trajectory setpoints
   mavros_msgs::msg::GlobalPositionTarget msg;
   msg.header.stamp = this->get_clock()->now();
   msg.coordinate_frame = mavros_msgs::msg::GlobalPositionTarget::FRAME_GLOBAL_REL_ALT;
   msg.type_mask =
-      mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW | mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW_RATE;
+      mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW |
+      mavros_msgs::msg::GlobalPositionTarget::IGNORE_YAW_RATE;
+  // msg.type_mask = path_mask;
   msg.latitude = latitude;
   msg.longitude = longitude;
   msg.altitude = altitude - local_origin_altitude_;
