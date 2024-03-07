@@ -672,7 +672,7 @@ PLANNER_STATE TerrainPlanner::finiteStateMachine(const PLANNER_STATE current_sta
     case PLANNER_STATE::ABORT: {
       int current_segment_idx = reference_primitive_.getCurrentSegmentIndex(vehicle_position_);
       bool is_last_segment = bool(current_segment_idx >= static_cast<int>(reference_primitive_.segments.size() - 1));
-      if (is_last_segment) {
+      if (is_last_segment || query_state == PLANNER_STATE::HOLD) {
         /// TODO: Clear candidate primitive
         candidate_primitive_.segments.clear();
         planner_mode_ = PLANNER_MODE::GLOBAL;
