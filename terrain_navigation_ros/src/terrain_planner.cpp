@@ -642,9 +642,9 @@ PLANNER_STATE TerrainPlanner::finiteStateMachine(const PLANNER_STATE current_sta
           planner_mode_ = PLANNER_MODE::ACTIVE_MAPPING;
           next_state = query_state;
           break;
-          default:
-            break;
         }
+        default:
+          break;
       }
       break;
     }
