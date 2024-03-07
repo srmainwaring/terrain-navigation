@@ -953,15 +953,25 @@ void TerrainPlanner::mavstateCallback(const mavros_msgs::msg::State &msg) { curr
 //    # Geographic point, using the WGS 84 reference ellipsoid.
 //
 void TerrainPlanner::mavGlobalOriginCallback(const geographic_msgs::msg::GeoPointStamped &msg) {
-  // receive geocentric LLA coordinate from mavros/global_position/gp_origin
-  double geocentric_lat = static_cast<double>(msg.position.latitude);
-  double geocentric_lon = static_cast<double>(msg.position.longitude);
-  double geocentric_alt = static_cast<double>(msg.position.altitude);
 
-  // convert to geodetic coordinates with WGS-84 ellipsoid as datum
-  GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
+  //! @todo(srmainwaring) - make a parameter 
+  bool is_gps_global_origin_geodetic = true;
   double geodetic_lat, geodetic_lon, geodetic_alt;
-  earth.Reverse(geocentric_lat, geocentric_lon, geocentric_alt, geodetic_lat, geodetic_lon, geodetic_alt);
+
+  if (is_gps_global_origin_geodetic) {
+    geodetic_lat = static_cast<double>(msg.position.latitude);
+    geodetic_lon = static_cast<double>(msg.position.longitude);
+    geodetic_alt = static_cast<double>(msg.position.altitude);
+  } else {
+    // receive geocentric LLA coordinate from mavros/global_position/gp_origin
+    double geocentric_lat = static_cast<double>(msg.position.latitude);
+    double geocentric_lon = static_cast<double>(msg.position.longitude);
+    double geocentric_alt = static_cast<double>(msg.position.altitude);
+
+    // convert to geodetic coordinates with WGS-84 ellipsoid as datum
+    GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
+    earth.Reverse(geocentric_lat, geocentric_lon, geocentric_alt, geodetic_lat, geodetic_lon, geodetic_alt);
+  }
 
   // create local cartesian coordinates (ENU)
   enu_.emplace(geodetic_lat, geodetic_lon, geodetic_alt, GeographicLib::Geocentric::WGS84());
