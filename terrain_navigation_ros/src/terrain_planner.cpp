@@ -953,10 +953,6 @@ void TerrainPlanner::mavstateCallback(const mavros_msgs::msg::State &msg) { curr
 //    # Geographic point, using the WGS 84 reference ellipsoid.
 //
 void TerrainPlanner::mavGlobalOriginCallback(const geographic_msgs::msg::GeoPointStamped &msg) {
-  std::cout << "[TerrainPlanner] Received Global Origin from FMU" << std::endl;
-
-  local_origin_received_ = true;
-
   // receive geocentric LLA coordinate from mavros/global_position/gp_origin
   double geocentric_lat = static_cast<double>(msg.position.latitude);
   double geocentric_lon = static_cast<double>(msg.position.longitude);
@@ -975,10 +971,14 @@ void TerrainPlanner::mavGlobalOriginCallback(const geographic_msgs::msg::GeoPoin
   local_origin_latitude_ = geodetic_lat;
   local_origin_longitude_ = geodetic_lon;
 
-  std::cout << "Global Origin" << std::endl;
-  std::cout << "lat: " << local_origin_latitude_ << std::endl;
-  std::cout << "lon: " << local_origin_longitude_ << std::endl;
-  std::cout << "alt: " << local_origin_altitude_ << std::endl;
+  if (!local_origin_received_) {
+    std::cout << "[TerrainPlanner] Received Global Origin from FMU" << std::endl;
+    std::cout << "lat: " << local_origin_latitude_ << std::endl;
+    std::cout << "lon: " << local_origin_longitude_ << std::endl;
+    std::cout << "alt: " << local_origin_altitude_ << std::endl;
+  }
+
+  local_origin_received_ = true;
 }
 
 void TerrainPlanner::mavMissionCallback(const mavros_msgs::msg::WaypointList &msg) {
