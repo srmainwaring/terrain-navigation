@@ -783,7 +783,7 @@ void TerrainPlanner::publishGlobalPositionSetpoints(
   msg.velocity.z = velocity(2);
   auto curvature_vector = Eigen::Vector3d(0.0, 0.0, -curvature);
   auto projected_velocity = Eigen::Vector3d(velocity(0), velocity(1), 0.0);
-  Eigen::Vector3d lateral_acceleration = projected_velocity.squaredNorm() * curvature_vector.cross(projected_velocity);
+  Eigen::Vector3d lateral_acceleration = projected_velocity.squaredNorm() * curvature_vector.cross(projected_velocity.normalized());
   msg.acceleration_or_force.x = lateral_acceleration(0);
   msg.acceleration_or_force.y = lateral_acceleration(1);
   msg.acceleration_or_force.z = lateral_acceleration(2);
