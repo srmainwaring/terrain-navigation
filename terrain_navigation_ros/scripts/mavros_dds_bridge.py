@@ -15,10 +15,12 @@ import sys
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from ardupilot_msgs.msg import GlobalPosition
+from ardupilot_msgs.msg import Mode
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import TwistStamped
 from mavros_msgs.msg import GlobalPositionTarget
+from mavros_msgs.msg import State
 from sensor_msgs.msg import NavSatFix
 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
@@ -27,6 +29,13 @@ class MavrosDdsBridge(Node):
     def __init__(self):
         super().__init__("mavros_dds_bridge")
 
+        self.enable_cmd_gps_pose = True
+        self.enable_gps_global_origin = False
+        self.enable_navsat = False
+        self.enable_pose = False
+        self.enable_twist = False
+        self.enable_state = True
+
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -34,74 +43,94 @@ class MavrosDdsBridge(Node):
         )
 
         # setpoint global: mavros => ap_dds
-        self.cmd_gps_pose_pub = self.create_publisher(
-            GlobalPosition,
-            "/ap/cmd_gps_pose",
-            10,
-        )
+        if self.enable_cmd_gps_pose:
+            self.cmd_gps_pose_pub = self.create_publisher(
+                GlobalPosition,
+                "/ap/cmd_gps_pose",
+                10,
+            )
 
-        self.cmd_gps_pose_sub = self.create_subscription(
-            GlobalPositionTarget,
-            "/mav/setpoint_raw/global",
-            self.cmd_gps_pose_cb,
-            10,
-        )
+            self.cmd_gps_pose_sub = self.create_subscription(
+                GlobalPositionTarget,
+                "/setpoint_raw/global",
+                self.cmd_gps_pose_cb,
+                10,
+            )
 
         # gps_global_origin: ap_dds => mavros
-        self.gps_global_origin_pub = self.create_publisher(
-            GeoPointStamped,
-            "/mav/global_position/gp_origin",
-            10,
-        )
+        if self.enable_gps_global_origin:
+            self.gps_global_origin_pub = self.create_publisher(
+                GeoPointStamped,
+                "/global_position/gp_origin",
+                10,
+            )
 
-        self.gps_global_origin_sub = self.create_subscription(
-            GeoPointStamped,
-            "/ap/gps_global_origin/filtered",
-            self.gps_global_origin_cb,
-            qos_profile=qos_profile,
-        )
+            self.gps_global_origin_sub = self.create_subscription(
+                GeoPointStamped,
+                "/ap/gps_global_origin/filtered",
+                self.gps_global_origin_cb,
+                qos_profile=qos_profile,
+            )
 
         # navsat: ap_dds => mavros
-        self.navsat_pub = self.create_publisher(
-            NavSatFix,
-            "/mav/global_position/global",
-            10,
-        )
+        if self.enable_navsat:
+            self.navsat_pub = self.create_publisher(
+                NavSatFix,
+                "/global_position/global",
+                10,
+            )
 
-        self.navsat_sub = self.create_subscription(
-            NavSatFix,
-            "/ap/navsat/navsat0",
-            self.navsat_cb,
-            qos_profile=qos_profile,
-        )
+            self.navsat_sub = self.create_subscription(
+                NavSatFix,
+                "/ap/navsat/navsat0",
+                self.navsat_cb,
+                qos_profile=qos_profile,
+            )
 
         # pose stamped: ap_dds => mavros
-        self.pose_pub = self.create_publisher(
-            PoseStamped,
-            "/mav/local_position/pose",
-            10,
-        )
+        if self.enable_pose:
+            self.pose_pub = self.create_publisher(
+                PoseStamped,
+                "/local_position/pose",
+                10,
+            )
 
-        self.pose_sub = self.create_subscription(
-            PoseStamped,
-            "/ap/pose/filtered",
-            self.pose_cb,
-            qos_profile=qos_profile,
-        )
+            self.pose_sub = self.create_subscription(
+                PoseStamped,
+                "/ap/pose/filtered",
+                self.pose_cb,
+                qos_profile=qos_profile,
+            )
 
         # twist stamped: ap_dds => mavros
-        self.twist_pub = self.create_publisher(
-            TwistStamped,
-            "/mav/local_position/velocity_local",
-            10,
-        )
+        if self.enable_twist:
+            self.twist_pub = self.create_publisher(
+                TwistStamped,
+                "/local_position/velocity_local",
+                10,
+            )
 
-        self.twist_sub = self.create_subscription(
-            TwistStamped,
-            "/ap/twist/filtered",
-            self.twist_cb,
-            qos_profile=qos_profile,
-        )
+            self.twist_sub = self.create_subscription(
+                TwistStamped,
+                "/ap/twist/filtered",
+                self.twist_cb,
+                qos_profile=qos_profile,
+            )
+
+        # state: ap_dds => mavros
+        if self.enable_state:
+            self.state_pub = self.create_publisher(
+                State,
+                "/state",
+                10,
+            )
+
+            self.mode_sub = self.create_subscription(
+                Mode,
+                "/ap/mode",
+                self.mode_cb,
+                10,
+            )
 
     def cmd_gps_pose_cb(self, msg):
         out_msg = GlobalPosition()
@@ -195,6 +224,49 @@ class MavrosDdsBridge(Node):
 
         self.twist_pub.publish(out_msg)
 
+    def mode_cb(self, msg):
+        # convert AP mode number to string - valid for ArduPlane only
+        if msg.mode == 0:
+            mode = "MANUAL"
+        elif msg.mode == 1:
+            mode = "CIRCLE"
+        elif msg.mode == 2:
+            mode = "STABILIZE"
+        elif msg.mode == 3:
+            mode = "TRAINING"
+        elif msg.mode == 4:
+            mode = "ACRO"
+        elif msg.mode == 5:
+            mode = "FBWA"
+        elif msg.mode == 6:
+            mode = "FBWB"
+        elif msg.mode == 7:
+            mode = "CRUISE"
+        elif msg.mode == 8:
+            mode = "AUTOTUNE"
+        elif msg.mode == 10:
+            mode = "AUTO"
+        elif msg.mode == 11:
+            mode = "RTL"
+        elif msg.mode == 12:
+            mode = "LOITER"
+        elif msg.mode == 15:
+            mode = "GUIDED"
+        else:
+            mode = ""
+
+        out_msg = State()
+        # header
+        out_msg.header.stamp = self.get_clock().now().to_msg()
+        out_msg.header.frame_id = ""
+        # state
+        out_msg.connected = True
+        out_msg.armed = True
+        out_msg.guided = (mode == "GUIDED")
+        out_msg.mode = mode
+        out_msg.system_status = 4 # MAV_STATE_ACTIVE
+
+        self.state_pub.publish(out_msg)
 
 def main(args=None):
     rclpy.init(args=args)
