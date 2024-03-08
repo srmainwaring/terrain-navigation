@@ -20,29 +20,20 @@ def generate_launch_description():
     heading_deg = 0
     home = f"'{latitude_deg}, {longitude_deg}, {elevation}, {heading_deg}'"
 
-    # ardupilot sitl node with DDS and mavproxy
-    sitl_dds = IncludeLaunchDescription(
+    # ardupilot sitl node
+    sitl = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
                 PathJoinSubstitution(
                     [
                         FindPackageShare("ardupilot_sitl"),
                         "launch",
-                        "sitl_dds_udp.launch.py",
+                        "sitl.launch.py",
                     ]
                 ),
             ]
         ),
         launch_arguments={
-            "transport": "udp4",
-            "refs": PathJoinSubstitution(
-                [
-                    FindPackageShare("ardupilot_sitl"),
-                    "config",
-                    "dds_xrce_profile.xml",
-                ]
-            ),
-            "port": "2019",
             "command": "arduplane",
             "synthetic_clock": "True",
             "wipe": "False",
@@ -65,6 +56,49 @@ def generate_launch_description():
             ),
             "home": home,
             "sim_address": "127.0.0.1",
+        }.items(),
+    )
+
+    # micro_ros_agent node configured for UDP
+    micro_ros_agent = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("ardupilot_sitl"),
+                        "launch",
+                        "micro_ros_agent.launch.py",
+                    ]
+                ),
+            ]
+        ),
+        launch_arguments={
+            "transport": "udp4",
+            "refs": PathJoinSubstitution(
+                [
+                    FindPackageShare("ardupilot_sitl"),
+                    "config",
+                    "dds_xrce_profile.xml",
+                ]
+            ),
+            "port": "2019",
+        }.items(),
+    )
+
+    # mavproxy node in non-interactive mode 
+    mavproxy = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("ardupilot_sitl"),
+                        "launch",
+                        "mavproxy.launch.py",
+                    ]
+                ),
+            ]
+        ),
+        launch_arguments={
             "master": "tcp:127.0.0.1:5760",
             "sitl": "127.0.0.1:5501",
         }.items(),
@@ -72,6 +106,8 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            sitl_dds,
+            sitl,
+            micro_ros_agent,
+            mavproxy,
         ]
     )
