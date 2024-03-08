@@ -15,6 +15,10 @@ def generate_launch_description():
         package="rviz2",
         executable="rviz2",
         arguments=["-d", os.path.join(pkg_terrain_planner, "launch", "config.rviz")],
+        remappings=[
+            # redirect mavros services to mavros_dds_bridge
+            ("/mavros/set_mode", "/set_mode"),
+        ],
     )
 
     return LaunchDescription(
