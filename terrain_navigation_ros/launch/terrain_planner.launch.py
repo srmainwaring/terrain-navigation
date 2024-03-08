@@ -60,12 +60,12 @@ def generate_terrain_navigation_action(
             {"cruise_speed": cruise_speed},
         ],
         remappings=[
-            # map directly to AP_DDS topics
+            # redirect mavros topics to AP_DDS topics
             ("/mavros/global_position/global", "/ap/navsat/navsat0"),
             ("/mavros/global_position/gp_origin", "/ap/gps_global_origin/filtered"),
             ("/mavros/local_position/pose", "/ap/pose/filtered"),
             ("/mavros/local_position/velocity_local", "/ap/twist/filtered"),
-            # map to topics transformed by the mavros_dds_bridge
+            # redirect mavros topics to mavros_dds_bridge
             ("/mavros/setpoint_raw/global", "/setpoint_raw/global"),
             ("/mavros/state", "/state"),
         ],
