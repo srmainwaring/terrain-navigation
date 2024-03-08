@@ -23,6 +23,8 @@ from mavros_msgs.msg import GlobalPositionTarget
 from mavros_msgs.msg import State
 from sensor_msgs.msg import NavSatFix
 
+from mavros_msgs.srv import SetMode
+
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 class MavrosDdsBridge(Node):
@@ -131,6 +133,11 @@ class MavrosDdsBridge(Node):
                 self.mode_cb,
                 10,
             )
+
+
+        # forward mavros service request /setmode => /ap/mode_switch
+        self.create_service(SetMode, "/set_mode", self.set_mode_cb) 
+
 
     def cmd_gps_pose_cb(self, msg):
         out_msg = GlobalPosition()
@@ -267,6 +274,16 @@ class MavrosDdsBridge(Node):
         out_msg.system_status = 4 # MAV_STATE_ACTIVE
 
         self.state_pub.publish(out_msg)
+
+    def set_mode_cb(self, request, response):
+        request.base_mode
+        request.custom_mode
+
+        self.get_logger().info("SetMode: {}".format(request.custom_mode))
+        
+        response.mode_sent = True
+        return response
+
 
 def main(args=None):
     rclpy.init(args=args)
