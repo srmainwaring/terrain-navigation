@@ -2,8 +2,26 @@
 
 """
 ROS 2 node to convert from mavros to ardupilot DDS
+
+  from: /setpoint_raw/global: mavros_msgs.msg.GlobalPositionTarget
+  to:   /ap/cmd_gps_pose: ardupilot_msgs.msg.GlobalPosition
+  note: convert mavros global position setpoint to ardupilot_dds
+
+  from: /ap/mode: ardupilot_msgs.msg.Mode
+  to:   /state: mavros_msgs.msg.State
+  note: convert ardupilot_dds mode to mavros state.custom_mode
+
+  from: /set_mode: mavros_msgs.srv.SetMode
+  to:   /ap/mode_switch: ardupilot_msgs.srv.ModeSwitch
+  note: forward requests for a mode change to ardupilot_dds
+
+  topic: /tf_static: geometry_msgs.msg.TransformStamped
+  note: provide transform from map -> map_ned as rviz expects at least one
+  fixed frame will be available. Not required for the planner.
+  The Euler angles (180 0 90) rotate vectors from ENU to NED.
 """
 
+import math
 import rclpy
 import sys
 
@@ -13,6 +31,7 @@ from ardupilot_msgs.msg import GlobalPosition
 from ardupilot_msgs.msg import Mode
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import TwistStamped
 from mavros_msgs.msg import GlobalPositionTarget
 from mavros_msgs.msg import State
@@ -22,6 +41,7 @@ from ardupilot_msgs.srv import ModeSwitch
 from mavros_msgs.srv import SetMode
 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
 
 AP_PLANE_MODES = {
@@ -61,7 +81,35 @@ def to_mode_number(mode_str):
     return mode_number[0]
 
 
+# https://docs.ros.org/en/rolling/Tutorials/Intermediate/Tf2/Writing-A-Tf2-Static-Broadcaster-Py.html
+def quaternion_from_euler(ai, aj, ak):
+    ai /= 2.0
+    aj /= 2.0
+    ak /= 2.0
+    ci = math.cos(ai)
+    si = math.sin(ai)
+    cj = math.cos(aj)
+    sj = math.sin(aj)
+    ck = math.cos(ak)
+    sk = math.sin(ak)
+    cc = ci * ck
+    cs = ci * sk
+    sc = si * ck
+    ss = si * sk
+
+    q = [0, 0, 0, 0]  # np.empty((4, ))
+    q[0] = cj * sc - sj * cs
+    q[1] = cj * ss + sj * cc
+    q[2] = cj * cs - sj * sc
+    q[3] = cj * cc + sj * ss
+
+    return q
+
+
 class MavrosDdsBridge(Node):
+    """
+    Bridge topics and services from mavros to ardupilot_dds 
+    """
     def __init__(self):
         super().__init__("mavros_dds_bridge")
 
@@ -80,7 +128,7 @@ class MavrosDdsBridge(Node):
             depth=1,
         )
 
-        # setpoint global: mavros => ap_dds
+        # setpoint global: mavros => ardupilot_dds
         if self.enable_cmd_gps_pose:
             self.cmd_gps_pose_pub = self.create_publisher(
                 GlobalPosition,
@@ -95,7 +143,7 @@ class MavrosDdsBridge(Node):
                 10,
             )
 
-        # gps_global_origin: ap_dds => mavros
+        # gps_global_origin: ardupilot_dds => mavros
         if self.enable_gps_global_origin:
             self.gps_global_origin_pub = self.create_publisher(
                 GeoPointStamped,
@@ -110,7 +158,7 @@ class MavrosDdsBridge(Node):
                 qos_profile=qos_profile,
             )
 
-        # navsat: ap_dds => mavros
+        # navsat: ardupilot_dds => mavros
         if self.enable_navsat:
             self.navsat_pub = self.create_publisher(
                 NavSatFix,
@@ -125,7 +173,7 @@ class MavrosDdsBridge(Node):
                 qos_profile=qos_profile,
             )
 
-        # pose stamped: ap_dds => mavros
+        # pose stamped: ardupilot_dds => mavros
         if self.enable_pose:
             self.pose_pub = self.create_publisher(
                 PoseStamped,
@@ -140,7 +188,7 @@ class MavrosDdsBridge(Node):
                 qos_profile=qos_profile,
             )
 
-        # twist stamped: ap_dds => mavros
+        # twist stamped: ardupilot_dds => mavros
         if self.enable_twist:
             self.twist_pub = self.create_publisher(
                 TwistStamped,
@@ -155,7 +203,7 @@ class MavrosDdsBridge(Node):
                 qos_profile=qos_profile,
             )
 
-        # state: ap_dds => mavros
+        # state: ardupilot_dds => mavros
         if self.enable_state:
             self.state_pub = self.create_publisher(
                 State,
@@ -178,6 +226,20 @@ class MavrosDdsBridge(Node):
                 self.get_logger().info(
                     "AP_DDS ModeSwitch service not available, waiting..."
                 )
+
+        # publish static transforms once at startup
+        self.tf_static_broadcaster = StaticTransformBroadcaster(self)
+        transformation = [
+            "map",
+            "map_ned",
+            0,
+            0,
+            0,
+            math.radians(180),
+            0,
+            math.radians(90),
+        ]
+        self.make_transforms(transformation)
 
     def cmd_gps_pose_cb(self, msg):
         out_msg = GlobalPosition()
@@ -300,8 +362,7 @@ class MavrosDdsBridge(Node):
 
         def done_cb(ap_future):
             ap_response = ap_future.result()
-            self.get_logger().info(
-                "status:    {}".format(ap_response.status))
+            self.get_logger().info("status:    {}".format(ap_response.status))
             self.get_logger().info(
                 "curr mode: {} ({}))".format(
                     to_mode_string(ap_response.curr_mode),
@@ -313,6 +374,26 @@ class MavrosDdsBridge(Node):
 
         response.mode_sent = True
         return response
+
+    def make_transforms(self, transformation):
+        t = TransformStamped()
+
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = transformation[0]
+        t.child_frame_id = transformation[1]
+
+        t.transform.translation.x = float(transformation[2])
+        t.transform.translation.y = float(transformation[3])
+        t.transform.translation.z = float(transformation[4])
+        quat = quaternion_from_euler(
+            float(transformation[5]), float(transformation[6]), float(transformation[7])
+        )
+        t.transform.rotation.x = quat[0]
+        t.transform.rotation.y = quat[1]
+        t.transform.rotation.z = quat[2]
+        t.transform.rotation.w = quat[3]
+
+        self.tf_static_broadcaster.sendTransform(t)
 
 
 def main(args=None):
