@@ -295,8 +295,21 @@ class MavrosDdsBridge(Node):
         ap_future = self.mode_cli.call_async(ap_request)
 
         self.get_logger().info(
-            "SetMode: {} ({})".format(request.custom_mode, ap_request.mode)
+            "SetMode:   {} ({})".format(request.custom_mode, ap_request.mode)
         )
+
+        def done_cb(ap_future):
+            ap_response = ap_future.result()
+            self.get_logger().info(
+                "status:    {}".format(ap_response.status))
+            self.get_logger().info(
+                "curr mode: {} ({}))".format(
+                    to_mode_string(ap_response.curr_mode),
+                    ap_response.curr_mode,
+                )
+            )
+
+        ap_future.add_done_callback(done_cb)
 
         response.mode_sent = True
         return response
