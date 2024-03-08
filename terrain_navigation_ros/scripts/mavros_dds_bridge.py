@@ -2,11 +2,6 @@
 
 """
 ROS 2 node to convert from mavros to ardupilot DDS
-
-Conversions
-mavros_msgs/GlobalPositionTarget => ardupilot_msgs/GlobalPosition
-
-
 """
 
 import rclpy
@@ -23,25 +18,66 @@ from mavros_msgs.msg import GlobalPositionTarget
 from mavros_msgs.msg import State
 from sensor_msgs.msg import NavSatFix
 
+from ardupilot_msgs.srv import ModeSwitch
 from mavros_msgs.srv import SetMode
 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+
+
+AP_PLANE_MODES = {
+    0: "MANUAL",
+    1: "CIRCLE",
+    2: "STABILIZE",
+    3: "TRAINING",
+    4: "ACRO",
+    5: "FBWA",
+    6: "FBWB",
+    7: "CRUISE",
+    8: "AUTOTUNE",
+    10: "AUTO",
+    11: "RTL",
+    12: "LOITER",
+    15: "GUIDED",
+}
+
+
+def to_mode_string(mode_number):
+    """
+    Convert ArduPilot mode number to string - valid for ArduPlane only.
+    """
+    mode_str = AP_PLANE_MODES.get(mode_number)
+    if mode_str is None:
+        mode_str = ""
+    return mode_str
+
+
+def to_mode_number(mode_str):
+    """
+    Convert ArduPilot mode string to number - valid for ArduPlane only.
+    """
+    mode_number = [key for key, value in AP_PLANE_MODES.items() if value == mode_str]
+    if not mode_number:
+        mode_number = [0]
+    return mode_number[0]
+
 
 class MavrosDdsBridge(Node):
     def __init__(self):
         super().__init__("mavros_dds_bridge")
 
+        # TODO: make parameters
         self.enable_cmd_gps_pose = True
         self.enable_gps_global_origin = False
         self.enable_navsat = False
         self.enable_pose = False
         self.enable_twist = False
         self.enable_state = True
+        self.enable_mode_service = True
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
-            depth=1
+            depth=1,
         )
 
         # setpoint global: mavros => ap_dds
@@ -134,10 +170,14 @@ class MavrosDdsBridge(Node):
                 10,
             )
 
-
         # forward mavros service request /setmode => /ap/mode_switch
-        self.create_service(SetMode, "/set_mode", self.set_mode_cb) 
-
+        if self.enable_mode_service:
+            self.create_service(SetMode, "/set_mode", self.set_mode_cb)
+            self.mode_cli = self.create_client(ModeSwitch, "ap/mode_switch")
+            while not self.mode_cli.wait_for_service(timeout_sec=1.0):
+                self.get_logger().info(
+                    "AP_DDS ModeSwitch service not available, waiting..."
+                )
 
     def cmd_gps_pose_cb(self, msg):
         out_msg = GlobalPosition()
@@ -232,35 +272,7 @@ class MavrosDdsBridge(Node):
         self.twist_pub.publish(out_msg)
 
     def mode_cb(self, msg):
-        # convert AP mode number to string - valid for ArduPlane only
-        if msg.mode == 0:
-            mode = "MANUAL"
-        elif msg.mode == 1:
-            mode = "CIRCLE"
-        elif msg.mode == 2:
-            mode = "STABILIZE"
-        elif msg.mode == 3:
-            mode = "TRAINING"
-        elif msg.mode == 4:
-            mode = "ACRO"
-        elif msg.mode == 5:
-            mode = "FBWA"
-        elif msg.mode == 6:
-            mode = "FBWB"
-        elif msg.mode == 7:
-            mode = "CRUISE"
-        elif msg.mode == 8:
-            mode = "AUTOTUNE"
-        elif msg.mode == 10:
-            mode = "AUTO"
-        elif msg.mode == 11:
-            mode = "RTL"
-        elif msg.mode == 12:
-            mode = "LOITER"
-        elif msg.mode == 15:
-            mode = "GUIDED"
-        else:
-            mode = ""
+        mode_str = to_mode_string(msg.mode)
 
         out_msg = State()
         # header
@@ -269,18 +281,23 @@ class MavrosDdsBridge(Node):
         # state
         out_msg.connected = True
         out_msg.armed = True
-        out_msg.guided = (mode == "GUIDED")
-        out_msg.mode = mode
-        out_msg.system_status = 4 # MAV_STATE_ACTIVE
+        out_msg.guided = mode_str == "GUIDED"
+        out_msg.mode = mode_str
+        out_msg.system_status = 4  # MAV_STATE_ACTIVE
 
         self.state_pub.publish(out_msg)
 
     def set_mode_cb(self, request, response):
-        request.base_mode
-        request.custom_mode
+        mode_number = to_mode_number(request.custom_mode)
 
-        self.get_logger().info("SetMode: {}".format(request.custom_mode))
-        
+        ap_request = ModeSwitch.Request()
+        ap_request.mode = mode_number
+        ap_future = self.mode_cli.call_async(ap_request)
+
+        self.get_logger().info(
+            "SetMode: {} ({})".format(request.custom_mode, ap_request.mode)
+        )
+
         response.mode_sent = True
         return response
 
