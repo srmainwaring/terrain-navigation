@@ -87,10 +87,12 @@ TerrainPlanner::TerrainPlanner() : Node("terrain_planner") {
   K_z_ = this->declare_parameter("alt_control_p", 0.5);
   max_climb_rate_control_ = this->declare_parameter("alt_control_max_climb_rate", 3.0);
   cruise_speed_ = this->declare_parameter("cruise_speed", 15.0);
+  is_gps_global_origin_geodetic_ = this->declare_parameter("is_gps_global_origin_geodetic", false);
 
   RCLCPP_INFO_STREAM(this->get_logger(), "alt_control_p: " << K_z_);
   RCLCPP_INFO_STREAM(this->get_logger(), "alt_control_max_climb_rate: " << max_climb_rate_control_);
   RCLCPP_INFO_STREAM(this->get_logger(), "cruise_speed: " << cruise_speed_);
+  RCLCPP_INFO_STREAM(this->get_logger(), "is_gps_global_origin_geodetic: " << is_gps_global_origin_geodetic_);
 
   // quality of service settings
   rclcpp::QoS latching_qos(1);
@@ -954,11 +956,9 @@ void TerrainPlanner::mavstateCallback(const mavros_msgs::msg::State &msg) { curr
 //
 void TerrainPlanner::mavGlobalOriginCallback(const geographic_msgs::msg::GeoPointStamped &msg) {
 
-  //! @todo(srmainwaring) - make a parameter 
-  bool is_gps_global_origin_geodetic = true;
   double geodetic_lat, geodetic_lon, geodetic_alt;
 
-  if (is_gps_global_origin_geodetic) {
+  if (is_gps_global_origin_geodetic_) {
     geodetic_lat = static_cast<double>(msg.position.latitude);
     geodetic_lon = static_cast<double>(msg.position.longitude);
     geodetic_alt = static_cast<double>(msg.position.altitude);

@@ -276,6 +276,8 @@ class TerrainPlanner : public rclcpp::Node {
   double cruise_speed_{15.0};
   // Altitude controller max climb rate. Set to PX4 FW_T_CLMB_R_SP.
   double max_climb_rate_control_{3.0};
+  // True if the GPS global origin is provided in geodetic coordinates.
+  bool is_gps_global_origin_geodetic_{false};
 
   std::string map_path_{};
   std::string map_color_path_{};
