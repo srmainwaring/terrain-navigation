@@ -58,14 +58,17 @@ def generate_terrain_navigation_action(
             {"alt_control_p": alt_control_p},
             {"alt_control_max_climb_rate": alt_control_max_climb_rate},
             {"cruise_speed": cruise_speed},
+            {"cruise_speed": cruise_speed},
+            # mavros_dds_bridge provideds the gps_global_origin in standard geodetic coordinates
+            {"is_gps_global_origin_geodetic": True},
         ],
         remappings=[
-            # redirect mavros topics to AP_DDS topics
-            ("/mavros/global_position/global", "/ap/navsat/navsat0"),
-            ("/mavros/global_position/gp_origin", "/ap/gps_global_origin/filtered"),
+            # redirect mavros topics to AP_DDS
             ("/mavros/local_position/pose", "/ap/pose/filtered"),
             ("/mavros/local_position/velocity_local", "/ap/twist/filtered"),
             # redirect mavros topics to mavros_dds_bridge
+            ("/mavros/global_position/global", "/global_position/global"),
+            ("/mavros/global_position/gp_origin", "/global_position/gp_origin"),
             ("/mavros/setpoint_raw/global", "/setpoint_raw/global"),
             ("/mavros/state", "/state"),
         ],
