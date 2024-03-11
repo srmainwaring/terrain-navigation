@@ -43,6 +43,9 @@ from mavros_msgs.srv import SetMode
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
+import pygeodesy
+from pygeodesy.ellipsoidalKarney import LatLon
+
 
 AP_PLANE_MODES = {
     0: "MANUAL",
@@ -106,21 +109,37 @@ def quaternion_from_euler(ai, aj, ak):
     return q
 
 
+# https://geographiclib.sourceforge.io/C++/doc/geoid.html#geoidinst
+GEOID_FILE = "/usr/local/share/GeographicLib/geoids/egm96-5.pgm"
+GEOID_INTERPOLATOR = pygeodesy.GeoidKarney(GEOID_FILE)
+
+
+def geoid_height(lat, lon):
+    """
+    Get the geoid height at position: lat, lon.
+    """
+    position = LatLon(lat, lon)
+    N = GEOID_INTERPOLATOR(position)
+    return N
+
+
 class MavrosDdsBridge(Node):
     """
-    Bridge topics and services from mavros to ardupilot_dds 
+    Bridge topics and services from mavros to ardupilot_dds
     """
+
     def __init__(self):
         super().__init__("mavros_dds_bridge")
 
         # TODO: make parameters
         self.enable_cmd_gps_pose = True
-        self.enable_gps_global_origin = False
-        self.enable_navsat = False
+        self.enable_gps_global_origin = True
+        self.enable_navsat = True
         self.enable_pose = False
         self.enable_twist = False
         self.enable_state = True
         self.enable_mode_service = True
+        self.convert_orthometric_to_ellipsoid = True
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -271,6 +290,11 @@ class MavrosDdsBridge(Node):
         # self.get_logger().info("send: {}\n".format(pos_msg))
 
     def gps_global_origin_cb(self, msg):
+        # convert altitude reference to WGS84 ellipsoid
+        alt_ellipsoid = msg.position.altitude
+        if self.convert_orthometric_to_ellipsoid:
+            alt_ellipsoid += geoid_height(msg.position.latitude, msg.position.longitude)
+
         out_msg = GeoPointStamped()
         # header
         out_msg.header = msg.header
@@ -278,11 +302,16 @@ class MavrosDdsBridge(Node):
         # position
         out_msg.position.latitude = msg.position.latitude
         out_msg.position.longitude = msg.position.longitude
-        out_msg.position.altitude = msg.position.altitude
+        out_msg.position.altitude = alt_ellipsoid
 
         self.gps_global_origin_pub.publish(out_msg)
 
     def navsat_cb(self, msg):
+        # convert altitude reference to WGS84 ellipsoid
+        alt_ellipsoid = msg.altitude
+        if self.convert_orthometric_to_ellipsoid:
+            alt_ellipsoid += geoid_height(msg.latitude, msg.longitude)
+
         out_msg = NavSatFix()
         # header
         out_msg.header = msg.header
@@ -293,7 +322,7 @@ class MavrosDdsBridge(Node):
         # lla
         out_msg.latitude = msg.latitude
         out_msg.longitude = msg.longitude
-        out_msg.altitude = msg.altitude
+        out_msg.altitude = alt_ellipsoid
         # covariance
         out_msg.position_covariance = msg.position_covariance
         out_msg.position_covariance_type = msg.position_covariance_type
