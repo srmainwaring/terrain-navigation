@@ -801,7 +801,8 @@ void TerrainPlanner::publishPositionSetpoints(rclcpp::Publisher<mavros_msgs::msg
   mavros_msgs::msg::PositionTarget msg;
   msg.header.stamp = this->get_clock()->now();
   msg.coordinate_frame = mavros_msgs::msg::PositionTarget::FRAME_LOCAL_NED;
-  msg.type_mask = mavros_msgs::msg::PositionTarget::IGNORE_YAW | mavros_msgs::msg::PositionTarget::IGNORE_YAW_RATE;
+  msg.type_mask = mavros_msgs::msg::PositionTarget::IGNORE_YAW |
+                  mavros_msgs::msg::PositionTarget::IGNORE_YAW_RATE;
   msg.position.x = position(0);
   msg.position.y = position(1);
   msg.position.z = position(2);
