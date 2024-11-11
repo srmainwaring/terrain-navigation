@@ -1,7 +1,7 @@
 #include "mav_planning_rviz/pose_widget.h"
 
 #include <QApplication>
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QHeaderView>
 #include <QTableView>
 #include <QTableWidget>
