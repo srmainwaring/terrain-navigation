@@ -74,13 +74,6 @@ def generate_launch_description():
         ),
         launch_arguments={
             "transport": "udp4",
-            "refs": PathJoinSubstitution(
-                [
-                    FindPackageShare("ardupilot_sitl"),
-                    "config",
-                    "dds_xrce_profile.xml",
-                ]
-            ),
             "port": "2019",
         }.items(),
     )
