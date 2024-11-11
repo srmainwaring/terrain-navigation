@@ -15,7 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Qt5 boilerplate options from http://doc.qt.io/qt-5/cmake-manual.html
+# Qt boilerplate options from http://doc.qt.io/qt-5/cmake-manual.html
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
@@ -43,7 +43,14 @@ find_package(std_srvs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)
+if(MSVC)
+  set(QT_VERSION_MAJOR 5)
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)
+else()
+  set(QT_VERSION_MAJOR 6)
+  # find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)
+endif()
 
 set(mav_planning_rviz_plugins_headers_to_moc
   include/mav_planning_rviz/pose_widget.h
@@ -73,7 +80,7 @@ ament_target_dependencies(${PROJECT_NAME}
   grid_map_ros
   interactive_markers
   pluginlib
-  Qt5
+  Qt${QT_VERSION_MAJOR}
   rclcpp
   rviz_common
   rviz_default_plugins
@@ -84,7 +91,7 @@ ament_target_dependencies(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-  ${Qt5Widgets_INCLUDE_DIRS}
+  ${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS}
   ${OGRE_INCLUDE_DIRS}
   ${mav_msgs_INCLUDE_DIRS}/..
 )
@@ -133,7 +140,7 @@ install(
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_include_directories(include)
 ament_export_dependencies(
-  Qt5
+  Qt${QT_VERSION_MAJOR}
   rviz_common
   geometry_msgs
   rclcpp
