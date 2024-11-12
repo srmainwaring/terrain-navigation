@@ -3,14 +3,37 @@
 """
 ROS 2 node to convert from mavros to ardupilot DDS
 
+  mavros => ardupilot_dds
   from: /setpoint_raw/global: mavros_msgs.msg.GlobalPositionTarget
   to:   /ap/cmd_gps_pose: ardupilot_msgs.msg.GlobalPosition
   note: convert mavros global position setpoint to ardupilot_dds
 
+  ardupilot_dds => mavros
+  from: /ap/gps_global_origin/filtered: geographic_msgs.msg.GeoPointStamped
+  to:   /global_position/gp_origin: geographic_msgs.msg.GeoPointStamped
+  note:
+
+  ardupilot_dds => mavros
+  from: /ap/navsat: sensor_msgs.msg.NavSatFix
+  to:   /global_position/global: sensor_msgs.msg.NavSatFix
+  note:
+
+  ardupilot_dds => mavros
+  from: /ap/pose/filtered: geometry_msgs.msg.PoseStamped
+  to:   /local_position/pose: geometry_msgs.msg.PoseStamped
+  note:
+
+  ardupilot_dds => mavros
+  from: /ap/twist/filtered: geometry_msgs.msg.TwistStamped
+  to:   /local_position/velocity_local: geometry_msgs.msg.TwistStamped
+  note:
+
+  ardupilot_dds => mavros
   from: /ap/mode: ardupilot_msgs.msg.Mode
   to:   /state: mavros_msgs.msg.State
   note: convert ardupilot_dds mode to mavros state.custom_mode
 
+  mavros => ardupilot_dds
   from: /set_mode: mavros_msgs.srv.SetMode
   to:   /ap/mode_switch: ardupilot_msgs.srv.ModeSwitch
   note: forward requests for a mode change to ardupilot_dds
@@ -187,7 +210,7 @@ class MavrosDdsBridge(Node):
 
             self.navsat_sub = self.create_subscription(
                 NavSatFix,
-                "/ap/navsat/navsat0",
+                "/ap/navsat",
                 self.navsat_cb,
                 qos_profile=qos_profile,
             )
@@ -234,7 +257,7 @@ class MavrosDdsBridge(Node):
                 Mode,
                 "/ap/mode",
                 self.mode_cb,
-                10,
+                qos_profile=qos_profile,
             )
 
         # forward mavros service request /setmode => /ap/mode_switch
@@ -261,6 +284,12 @@ class MavrosDdsBridge(Node):
         self.make_transforms(transformation)
 
     def cmd_gps_pose_cb(self, msg):
+        """
+        mavros => ardupilot_dds
+        from: /setpoint_raw/global: mavros_msgs.msg.GlobalPositionTarget
+        to:   /ap/cmd_gps_pose: ardupilot_msgs.msg.GlobalPosition
+        note: convert mavros global position setpoint to ardupilot_dds
+        """
         out_msg = GlobalPosition()
         # header
         out_msg.header = msg.header
@@ -290,6 +319,12 @@ class MavrosDdsBridge(Node):
         # self.get_logger().info("send: {}\n".format(pos_msg))
 
     def gps_global_origin_cb(self, msg):
+        """
+        ardupilot_dds => mavros
+        from: /ap/gps_global_origin/filtered: geographic_msgs.msg.GeoPointStamped
+        to:   /global_position/gp_origin: geographic_msgs.msg.GeoPointStamped
+        note:
+        """
         # convert altitude reference to WGS84 ellipsoid
         alt_ellipsoid = msg.position.altitude
         if self.convert_orthometric_to_ellipsoid:
@@ -307,6 +342,12 @@ class MavrosDdsBridge(Node):
         self.gps_global_origin_pub.publish(out_msg)
 
     def navsat_cb(self, msg):
+        """
+        ardupilot_dds => mavros
+        from: /ap/navsat: sensor_msgs.msg.NavSatFix
+        to:   /global_position/global: sensor_msgs.msg.NavSatFix
+        note:
+        """
         # convert altitude reference to WGS84 ellipsoid
         alt_ellipsoid = msg.altitude
         if self.convert_orthometric_to_ellipsoid:
@@ -330,6 +371,12 @@ class MavrosDdsBridge(Node):
         self.navsat_pub.publish(out_msg)
 
     def pose_cb(self, msg):
+        """
+        ardupilot_dds => mavros
+        from: /ap/pose/filtered: geometry_msgs.msg.PoseStamped
+        to:   /local_position/pose: geometry_msgs.msg.PoseStamped
+        note:
+        """
         out_msg = PoseStamped()
         # header
         out_msg.header = msg.header
@@ -347,6 +394,12 @@ class MavrosDdsBridge(Node):
         self.pose_pub.publish(out_msg)
 
     def twist_cb(self, msg):
+        """
+        ardupilot_dds => mavros
+        from: /ap/twist/filtered: geometry_msgs.msg.TwistStamped
+        to:   /local_position/velocity_local: geometry_msgs.msg.TwistStamped
+        note:
+        """
         out_msg = TwistStamped()
         # header
         out_msg.header = msg.header
@@ -363,6 +416,12 @@ class MavrosDdsBridge(Node):
         self.twist_pub.publish(out_msg)
 
     def mode_cb(self, msg):
+        """
+        ardupilot_dds => mavros
+        from: /ap/mode: ardupilot_msgs.msg.Mode
+        to:   /state: mavros_msgs.msg.State
+        note: convert ardupilot_dds mode to mavros state.custom_mode
+        """
         mode_str = to_mode_string(msg.mode)
 
         out_msg = State()
@@ -379,6 +438,12 @@ class MavrosDdsBridge(Node):
         self.state_pub.publish(out_msg)
 
     def set_mode_cb(self, request, response):
+        """
+        mavros => ardupilot_dds
+        from: /set_mode: mavros_msgs.srv.SetMode
+        to:   /ap/mode_switch: ardupilot_msgs.srv.ModeSwitch
+        note: forward requests for a mode change to ardupilot_dds
+        """
         mode_number = to_mode_number(request.custom_mode)
 
         ap_request = ModeSwitch.Request()
