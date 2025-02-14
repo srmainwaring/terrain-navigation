@@ -8,7 +8,6 @@
 // #include "terrain_navigation/data_logger.h"
 // #include "terrain_navigation/path_segment.h"
 // #include "terrain_navigation/path.h"
-// #include "terrain_navigation/primitive.h"
 // #include "terrain_navigation/profiler.h"
 // #include "terrain_navigation/terrain_map.h"
 // #include "terrain_navigation/viewpoint.h"
