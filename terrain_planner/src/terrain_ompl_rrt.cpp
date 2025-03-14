@@ -528,11 +528,11 @@ void TerrainOmplRrt::solutionPathToPath(ompl::geometric::PathGeometric path, Pat
         };
 
         std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[0]) << std::endl;
-        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[1]) << std::endl;
-        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[2]) << std::endl;
-        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[3]) << std::endl;
-        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[4]) << std::endl;
-        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[5]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[1]:     " << to_str(segmentStarts.segmentStarts[1]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[2]:     " << to_str(segmentStarts.segmentStarts[2]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[3]:     " << to_str(segmentStarts.segmentStarts[3]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[4]:     " << to_str(segmentStarts.segmentStarts[4]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[5]:     " << to_str(segmentStarts.segmentStarts[5]) << std::endl;
       }
     }
 
