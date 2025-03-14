@@ -65,6 +65,7 @@ class TerrainStateSampler : public base::StateSampler {
     const double map_width_x = map_.getLength().x();
     const double map_width_y = map_.getLength().y();
 
+    //! @todo(srmainwaring) looks like bug in sampler?                  V
     double x = rng_.uniformReal(map_pos(0) - 0.5 * map_width_x, map_pos(1) + 0.5 * map_width_x);
     double y = rng_.uniformReal(map_pos(1) - 0.5 * map_width_y, map_pos(1) + 0.5 * map_width_y);
     double yaw = rng_.uniformReal(-M_PI, M_PI);

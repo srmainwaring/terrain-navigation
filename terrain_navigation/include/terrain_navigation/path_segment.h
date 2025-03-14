@@ -224,6 +224,7 @@ class PathSegment {
       // Handle when it is a full circle
       if (is_periodic) {
         arc_center = getArcCenter(segment_start_2d, segment_start_tangent_2d, curvature);
+        //! @todo(srmainwaring) normalise - either both start and position or neither?
         Eigen::Vector2d start_vector = (segment_start_2d - arc_center).normalized();
         Eigen::Vector2d position_vector = position_2d - arc_center;
         double angle_pos =

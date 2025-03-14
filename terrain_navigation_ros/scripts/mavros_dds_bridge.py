@@ -347,6 +347,11 @@ class MavrosDdsBridge(Node):
         from: /ap/navsat: sensor_msgs.msg.NavSatFix
         to:   /global_position/global: sensor_msgs.msg.NavSatFix
         note:
+
+        /ap/navsat
+          - altitude in ArduPilot is orthometric height, which is the height
+            above the geoid (which approximates mean sea level). 
+
         """
         # convert altitude reference to WGS84 ellipsoid
         alt_ellipsoid = msg.altitude

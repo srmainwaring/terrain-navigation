@@ -563,18 +563,23 @@ void DubinsAirplaneStateSpace::dubins(double d, double alpha, double beta, Dubin
 
     // TODO: Check if that is necessary for the short path case or if it can be moved inside the bracket of the long
     // distance cases.
-    path.setClassification(classifyPath(alpha, beta));
+    DubinsPath::Classification classification = classifyPath(alpha, beta);
+    path.setClassification(classification);
 
     if (enable_classification_) {
       bool long_path_case = d > (sqrtf(4.0 - pow(ca + cb, 2.0)) + fabs(sa) + fabs(sb));
       if (long_path_case) {  // sufficient condition for optimality of CSC path type
         ++long_ctr_;
         calcDubPathWithClassification(path, d, alpha, beta, sa, sb, ca, cb);
+        //! @todo bug - path classification is overwritten 
+        path.setClassification(classification);
         return;
       }
     }
     ++short_ctr_;
     calcDubPathWithoutClassification(path, d, alpha, beta, sa, sb, ca, cb);
+    //! @todo bug - path classification is overwritten
+    path.setClassification(classification);
   }
 }
 

@@ -358,6 +358,184 @@ void TerrainOmplRrt::solutionPathToPath(ompl::geometric::PathGeometric path, Pat
     problem_setup_->getStateSpace()->as<fw_planning::spaces::DubinsAirplaneStateSpace>()->calculateSegments(
         from, to, dubins_path, segmentStarts);
 
+    bool debug_print{true}; 
+    if (debug_print)
+    {
+      {
+        auto to_str = [](fw_planning::spaces::DubinsPath::Index index) -> std::string {
+          std::string msg("");
+          switch (index)
+          {
+          case fw_planning::spaces::DubinsPath::Index::TYPE_LSL:
+            msg.append("TYPE_LSL");
+            break;
+          case fw_planning::spaces::DubinsPath::Index::TYPE_RSR:
+            msg.append("TYPE_RSR");
+            break;
+          case fw_planning::spaces::DubinsPath::Index::TYPE_RSL:
+            msg.append("TYPE_RSL");
+            break;
+          case fw_planning::spaces::DubinsPath::Index::TYPE_LSR:
+            msg.append("TYPE_LSR");
+            break;
+          case fw_planning::spaces::DubinsPath::Index::TYPE_RLR:
+            msg.append("TYPE_RLR");
+            break;
+          case fw_planning::spaces::DubinsPath::Index::TYPE_LRL:
+            msg.append("TYPE_LRL");
+            break;
+          }
+          return msg;
+        };
+
+        std::cout << "[TerrainOmplRrt] dubins.idx:  " << to_str(dubins_path.getIdx()) << std::endl;
+      }
+      {
+        auto to_str = [](const fw_planning::spaces::DubinsPath::DubinsPathSegmentType *type) -> std::string {
+          std::string msg("");
+          for (int i=0; i<3; ++i)
+          {
+            switch(type[i])
+            {
+            case fw_planning::spaces::DubinsPath::DubinsPathSegmentType::DUBINS_LEFT:
+              msg.append("DUBINS_LEFT");
+              break;
+            case fw_planning::spaces::DubinsPath::DubinsPathSegmentType::DUBINS_STRAIGHT:
+              msg.append("DUBINS_STRAIGHT");
+              break;
+            case fw_planning::spaces::DubinsPath::DubinsPathSegmentType::DUBINS_RIGHT:
+              msg.append("DUBINS_RIGHT");
+              break;
+            }
+            if (i<2)
+            {
+              msg.append(" ");
+            }
+          }
+          return msg;
+        };
+        std::cout << "[TerrainOmplRrt] dubins.type: "
+                  << to_str(dubins_path.getType()) << std::endl;
+      }
+      {
+        std::cout << "[TerrainOmplRrt] dubins.len:  "
+                  << dubins_path.getSegmentLength(1) << ", "
+                  << dubins_path.getSegmentLength(3) << ", "
+                  << dubins_path.getSegmentLength(4) << std::endl;
+      }
+      {
+        auto to_str = [](const fw_planning::spaces::DubinsPath::AltitudeCase alt_case) -> std::string {
+          std::string msg("");
+          switch(alt_case)
+          {
+          case fw_planning::spaces::DubinsPath::AltitudeCase::ALT_CASE_LOW:
+            msg.append("ALT_CASE_LOW");
+            break;
+          case fw_planning::spaces::DubinsPath::AltitudeCase::ALT_CASE_MEDIUM:
+            msg.append("ALT_CASE_MEDIUM");
+            break;
+          case fw_planning::spaces::DubinsPath::AltitudeCase::ALT_CASE_HIGH:
+            msg.append("ALT_CASE_HIGH");
+            break;
+          }
+          return msg;
+        };
+        std::cout << "[TerrainOmplRrt] dubins.alt:  "
+                  << to_str(dubins_path.getAltitudeCase()) << std::endl;
+      }
+      {
+        auto to_str = [](const fw_planning::spaces::DubinsPath::Classification classification) -> std::string {
+          std::string msg("");
+          switch(classification)
+          {
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A11:
+            msg.append("CLASS_A11");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A12:
+            msg.append("CLASS_A12");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A13:
+            msg.append("CLASS_A13");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A14:
+            msg.append("CLASS_A14");
+            break;
+
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A21:
+            msg.append("CLASS_A21");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A22:
+            msg.append("CLASS_A22");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A23:
+            msg.append("CLASS_A23");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A24:
+            msg.append("CLASS_A24");
+            break;
+
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A31:
+            msg.append("CLASS_A31");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A32:
+            msg.append("CLASS_A32");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A33:
+            msg.append("CLASS_A33");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A34:
+            msg.append("CLASS_A34");
+            break;
+
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A41:
+            msg.append("CLASS_A41");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A42:
+            msg.append("CLASS_A42");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A43:
+            msg.append("CLASS_A43");
+            break;
+          case fw_planning::spaces::DubinsPath::Classification::CLASS_A44:
+            msg.append("CLASS_A44");
+            break;
+
+          default:
+            msg.append("NOT ASSIGNED");
+            break;
+          }
+          return msg;
+        };
+        std::cout << "[TerrainOmplRrt] dubins.cls:  "
+                  << to_str(dubins_path.getClassification()) << std::endl;
+      }
+      {
+        // std::cout << "[TerrainOmplRrt] dubins.ks:   " << dubins_path.k_start_ << std::endl;
+        // std::cout << "[TerrainOmplRrt] dubins.ke:   " << dubins_path.k_end_ << std::endl;
+      }
+      {
+        auto to_str = [](fw_planning::spaces::DubinsAirplaneStateSpace::SegmentStarts::Start start) -> std::string {
+          std::string msg("");
+          msg.append(std::to_string(start.x));
+          msg.append(", ");
+          msg.append(std::to_string(start.y));
+          msg.append(", ");
+          msg.append(std::to_string(start.z));
+          msg.append(", ");
+          msg.append(std::to_string(start.yaw));
+          msg.append(", ");
+          return msg;
+        };
+
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[0]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[1]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[2]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[3]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[4]) << std::endl;
+        std::cout << "[TerrainOmplRrt] segs[0]:     " << to_str(segmentStarts.segmentStarts[5]) << std::endl;
+      }
+    }
+
     ompl::base::State* segment_start_state = problem_setup_->getStateSpace()->allocState();
     ompl::base::State* segment_end_state = problem_setup_->getStateSpace()->allocState();
 

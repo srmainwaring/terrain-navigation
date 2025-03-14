@@ -36,10 +36,18 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization system filesystem)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(ompl REQUIRED)
+find_package(ompl REQUIRED PATH /usr/local/share/ompl/cmake)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ODE REQUIRED ode)
+
+# message("OMPL_FOUND: ${OMPL_FOUND}")
+# message("OMPL_INCLUDE_DIR: ${OMPL_INCLUDE_DIR}")
+# message("OMPL_LIBRARIES: ${OMPL_LIBRARIES}")
+
+# message("ompl_FOUND: ${ompl_FOUND}")
+# message("ompl_INCLUDE_DIRS: ${ompl_INCLUDE_DIRS}")
+# message("ompl_LIBRARIES: ${ompl_LIBRARIES}")
 
 # Libraries
 add_library(${PROJECT_NAME}
@@ -55,12 +63,13 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-  ${OMPL_INCLUDE_DIR}
+  # ${OMPL_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   ${Boost_LIBRARIES}
-  ${OMPL_LIBRARIES}
+  # ${OMPL_LIBRARIES}
+  ompl::ompl
   ${OpenCV_LIBRARIES}
   ${tf2_geometry_msgs_TARGETS}
   tf2_eigen::tf2_eigen
@@ -93,7 +102,8 @@ target_link_directories(test_rrt_node PUBLIC
 target_link_libraries(test_rrt_node PUBLIC
   ${PROJECT_NAME}
   ${ODE_LIBRARIES}
-  ${OMPL_LIBRARIES}
+  # ${OMPL_LIBRARIES}
+  ompl::ompl
   ${OpenCV_LIBRARIES}
   ${geometry_msgs_TARGETS}
   ${tf2_geometry_msgs_TARGETS}
@@ -117,7 +127,8 @@ target_link_libraries(test_ompl_dubins PUBLIC
   ${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
   ${ODE_LIBRARIES}
-  ${OMPL_LIBRARIES}
+  # ${OMPL_LIBRARIES}
+  ompl::ompl
   ${geometry_msgs_TARGETS}
   ${tf2_geometry_msgs_TARGETS}
   tf2_eigen::tf2_eigen
@@ -140,10 +151,39 @@ target_link_libraries(test_ompl_dubins_to_circle PUBLIC
   ${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
   ${ODE_LIBRARIES}
-  ${OMPL_LIBRARIES}
+  # ${OMPL_LIBRARIES}
+  ompl::ompl
   ${geometry_msgs_TARGETS}
   ${tf2_geometry_msgs_TARGETS}
   tf2_eigen::tf2_eigen
+)
+
+# Additional tests
+add_executable(test_terrain_ompl_rrt
+  test/test_terrain_ompl_rrt.cpp
+  src/common.cpp
+  src/DubinsAirplane.cpp
+  src/DubinsPath.cpp
+  src/terrain_ompl_rrt.cpp
+  src/terrain_ompl.cpp
+)
+
+target_include_directories(test_terrain_ompl_rrt
+  PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
+)
+
+target_link_libraries(test_terrain_ompl_rrt
+  PUBLIC
+  ompl::ompl
+)
+
+ament_target_dependencies(test_terrain_ompl_rrt
+  PUBLIC
+  grid_map_core
+  grid_map_geo
+  terrain_navigation
 )
 
 # Install

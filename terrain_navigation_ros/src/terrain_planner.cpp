@@ -241,6 +241,28 @@ Eigen::Vector4d TerrainPlanner::rpy2quaternion(double roll, double pitch, double
   return q;
 }
 
+/*
+  command loop
+  - called every 100ms
+
+  Navigation control
+  - while a path segment is available
+    - get current segment
+    - calculate closest point given current position
+      - reference position
+      = reference tangent
+      - reference curvature
+      = distance progressed along path
+    - calculate geodetic position from reference position
+    - calculate the position set point
+
+  - publish planner navigation status
+
+  Visualisation
+  - publish vehicle pose
+  - publishe velocity marker
+  - publish position history
+*/
 void TerrainPlanner::cmdloopCallback() {
   if (!map_initialized_) return;
 
@@ -262,6 +284,8 @@ void TerrainPlanner::cmdloopCallback() {
     double altitude;
     GeoConversions::reverse(lv03_reference_position(0), lv03_reference_position(1), lv03_reference_position(2),
                             latitude, longitude, altitude);
+
+    // Visualisation  
     publishReferenceMarker(position_target_pub_, reference_position, reference_tangent, reference_curvature);
     publishReferenceCurvatureMarker(curvature_target_pub_, reference_position, reference_tangent, reference_curvature);
 
@@ -288,14 +312,17 @@ void TerrainPlanner::cmdloopCallback() {
           1.0, std::max((path_progress * segment_length - segment_length + cut_off_distance) / cut_off_distance, 0.0));
       curvature_reference = (1 - portion) * reference_curvature + portion * next_segment_curvature;
     }
-
+    // Navigation control
     publishGlobalPositionSetpoints(global_position_setpoint_pub_, latitude, longitude, altitude, velocity_reference,
                                    curvature_reference);
 
     /// TODO: Switch mode to planner engaged
     //! @todo(srmainwaring) current_state_.mode == "GUIDED" for AP
     if (current_state_.mode == "OFFBOARD" || current_state_.mode == "GUIDED") {
+      // Visualisation
       publishPositionHistory(referencehistory_pub_, reference_position, referencehistory_vector_);
+
+      // Navigation control
       tracking_error_ = reference_position - vehicle_position_;
       planner_enabled_ = true;
     } else {
@@ -304,6 +331,7 @@ void TerrainPlanner::cmdloopCallback() {
     }
   }
 
+  // Navigation control
   planner_msgs::msg::NavigationStatus msg;
   msg.header.stamp = this->get_clock()->now();
   // msg.planner_time.data = planner_time;
@@ -314,11 +342,18 @@ void TerrainPlanner::cmdloopCallback() {
   msg.vehicle_position = toVector3(vehicle_position_);
   planner_status_pub_->publish(msg);
 
+  // Visualisation
   publishVehiclePose(vehicle_pose_pub_, vehicle_position_, vehicle_attitude_, mesh_resource_path_);
   publishVelocityMarker(vehicle_velocity_pub_, vehicle_position_, vehicle_velocity_);
   publishPositionHistory(posehistory_pub_, vehicle_position_, posehistory_vector_);
 }
 
+/*
+  status loop
+  - called every 500ms
+  - capture the current state of the planner
+  - reset the query planner state to the current state if it has not been accepted
+*/
 void TerrainPlanner::statusloopCallback() {
   // Check if we want to update the planner state if query state and current state is different
   planner_state_ = finiteStateMachine(planner_state_, query_planner_state_);
@@ -328,6 +363,14 @@ void TerrainPlanner::statusloopCallback() {
   // printPlannerState(planner_state_);
 }
 
+/*
+  planner loop
+  - called every 2s
+  - initialise the map when the local origin is available
+  - request the local origin if it has not been set
+  - solve the planning problem
+  - publish the planned trajectory
+*/
 void TerrainPlanner::plannerloopCallback() {
   const std::lock_guard<std::mutex> lock(goal_mutex_);
   if (local_origin_received_ && !map_initialized_) {
