@@ -1164,6 +1164,12 @@ void DubinsAirplaneStateSpace::calculateSegmentStarts(const ob::State* from, con
   else
     interpol_tanGamma_ = tanf(path.getGamma());
 
+    std::cout << "[calculateSegmentStarts]" << std::endl;
+    std::cout << "interpol_seg:       " << interpol_seg_ << std::endl;
+    std::cout << "interpol_tanGamma:  " << interpol_tanGamma_ << std::endl;
+    std::cout << "[calculateSegmentStarts] loop..." << std::endl;
+
+
   stateInterpolation_->setXYZYaw(0.0, 0.0, 0.0, from->as<StateType>()->getYaw());
   for (interpol_iter_ = 0; interpol_iter_ < 6 && interpol_seg_ > 0.0; ++interpol_iter_) {
     interpol_v_ = std::min(interpol_seg_, path.getSegmentLength(interpol_iter_));
@@ -1175,6 +1181,22 @@ void DubinsAirplaneStateSpace::calculateSegmentStarts(const ob::State* from, con
     segmentStarts.segmentStarts[interpol_iter_].z = stateInterpolation_->getZ() * rho_ + from->as<StateType>()->getZ();
     getSubspace(1)->enforceBounds(stateInterpolation_->as<ob::SO2StateSpace::StateType>(1));
     segmentStarts.segmentStarts[interpol_iter_].yaw = stateInterpolation_->getYaw();
+
+    //! @todo debug
+    std::cout << "interpol_iter:      " << interpol_iter_ << std::endl;
+    std::cout << "interpol_seg:       " << interpol_seg_ << std::endl;
+    std::cout << "interpol_v:         " << interpol_v_ << std::endl;
+    std::cout << "interpol_phiStart:  " << interpol_phiStart_ << std::endl;
+
+    std::cout << "stateInterp.x:      " << stateInterpolation_->getX() << std::endl;
+    std::cout << "stateInterp.y:      " << stateInterpolation_->getY() << std::endl;
+    std::cout << "stateInterp.z:      " << stateInterpolation_->getZ() << std::endl;
+    std::cout << "stateInterp.yaw:    " << stateInterpolation_->getYaw() << std::endl;
+
+    std::cout << "from.x:             " << from->as<StateType>()->getX() << std::endl;
+    std::cout << "from.y:             " << from->as<StateType>()->getY() << std::endl;
+    std::cout << "from.z:             " << from->as<StateType>()->getZ() << std::endl;
+    std::cout << "from.yaw:           " << from->as<StateType>()->getYaw() << std::endl;
 
     switch (path.getType()[convert_idx(interpol_iter_)]) {
       case DubinsPath::DUBINS_LEFT:
