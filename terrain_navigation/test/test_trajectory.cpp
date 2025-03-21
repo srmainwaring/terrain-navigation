@@ -269,7 +269,7 @@ TEST(PathSegmentSegmentTest2, getClosestPoint) {
 
 TEST(PathSegmentTest, getLength1) {
   {
-    // half-circle counter-clockwise from (-1, 0)
+    // quarter-circle counter-clockwise from (-1, 0)
     PathSegment path_segment;
     path_segment.curvature = 1.0;
     {
@@ -288,7 +288,7 @@ TEST(PathSegmentTest, getLength1) {
     ASSERT_DOUBLE_EQ(length, M_PI_2);
   }
   {
-    // half-circle clockwise from (-1, 0)
+    // quarter-circle clockwise from (-1, 0)
     PathSegment path_segment;
     path_segment.curvature = -1.0;
     {
