@@ -266,3 +266,46 @@ TEST(PathSegmentSegmentTest2, getClosestPoint) {
   ASSERT_TRUE(tangent.isApprox(Eigen::Vector3d(0.0, -1.0, 0.0)));
   EXPECT_DOUBLE_EQ(curvature, 0.0);
 }
+
+TEST(PathSegmentTest, getLength1) {
+  {
+    // half-circle counter-clockwise from (-1, 0)
+    PathSegment path_segment;
+    path_segment.curvature = 1.0;
+    {
+      State state;
+      state.position << -1.0, 0.0, 0.0;
+      state.velocity << 0.0, -1.0, 0.0;
+      path_segment.states.emplace_back(state);
+    }
+    {
+      State state;
+      state.position << 0.0, -1.0, 0.0;
+      state.velocity << 1.0, 0.0, 0.0;
+      path_segment.states.emplace_back(state);
+    }
+    double length = path_segment.getLength();
+    ASSERT_DOUBLE_EQ(length, M_PI_2);
+  }
+  {
+    // half-circle clockwise from (-1, 0)
+    PathSegment path_segment;
+    path_segment.curvature = -1.0;
+    {
+      State state;
+      state.position << -1.0, 0.0, 0.0;
+      state.velocity << 0.0, 1.0, 0.0;
+      // state.attitude << 0.0, 0.0, 0.0, 1.0;
+      path_segment.states.emplace_back(state);
+    }
+    {
+      State state;
+      state.position << 0.0, 1.0, 0.0;
+      state.velocity << 1.0, 0.0, 0.0;
+      // state.attitude << 0.0, 0.0, 0.0, 1.0;
+      path_segment.states.emplace_back(state);
+    }
+    double length = path_segment.getLength();
+    ASSERT_DOUBLE_EQ(length, M_PI_2);
+  }
+}
