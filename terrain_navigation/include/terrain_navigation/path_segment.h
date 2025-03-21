@@ -189,9 +189,30 @@ class PathSegment {
         Eigen::Vector2d start_vector = (segment_start_2d - arc_center_2d).normalized();
         Eigen::Vector2d end_vector = (segment_end_2d - arc_center_2d).normalized();
 
+        std::cerr << "curvature:                " << curvature << std::endl;
+        std::cerr << "radius:                   " << (1 / std::abs(curvature)) << std::endl;
+        std::cerr << "segment_start_2d:         " << segment_start_2d.transpose() << std::endl;
+        std::cerr << "segment_end_2d:           " << segment_end_2d.transpose() << std::endl;
+        std::cerr << "segment_start_tangent_2d: " << segment_start_tangent_2d.transpose() << std::endl;
+        std::cerr << "arc_center_2d:            " << arc_center_2d.transpose() << std::endl;
+        std::cerr << "start_vector:             " << start_vector.transpose() << std::endl;
+        std::cerr << "end_vector:               " << end_vector.transpose() << std::endl;
+
+        Eigen::Vector3d a;
+        Eigen::Vector3d b;
+        a << start_vector(0), start_vector(1), 0.0;
+        b << segment_start_tangent_2d(0), segment_start_tangent_2d(1), 0.0;
+        double dir = a.cross(b)(2);
+
         double psi = std::atan2(end_vector(1), end_vector(0)) - std::atan2(start_vector(1), start_vector(0));
+        std::cerr << "psi:                      " << psi << std::endl;
+        psi *= dir;
         wrap_2pi(psi);
+        std::cerr << "psi:                      " << psi << std::endl;
         length = (1 / std::abs(curvature)) * psi;
+        std::cerr << "length:                   " << length << std::endl;
+
+
       }
     }
     return length;
